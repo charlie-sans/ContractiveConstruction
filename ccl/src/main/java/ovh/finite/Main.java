@@ -13,9 +13,13 @@ import ovh.finite.lexer.Token;
 import ovh.finite.parser.Parser;
 
 import java.io.IOException;
+import java.net.URLDecoder;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.jar.JarEntry;
+import java.util.jar.JarOutputStream;
+import java.util.jar.Manifest;
 
 public class Main {
     enum Language {
@@ -96,7 +100,7 @@ public class Main {
             CodeGenerator generator = new CodeGenerator();
             byte[] bytecode = generator.generate(statements);
 
-            Files.write(Paths.get("Main.class"), bytecode);
+            createJar(bytecode, "Main.jar");
         } else {
             ContractLexer lexer = new ContractLexer(source, reporter, debug);
             List<ContractToken> tokens = lexer.scanTokens();
@@ -115,11 +119,68 @@ public class Main {
             }
 
             ContractCodeGenerator generator = new ContractCodeGenerator(filePath);
-            byte[] bytecode = generator.generate(statements);
-
-            Files.write(Paths.get("Main.class"), bytecode);
+            try {
+                byte[] bytecode = generator.generate(statements);
+                createJar(bytecode, "Main.jar");
+            } catch (Exception e) {
+                System.err.println("Error during code generation:");
+                e.printStackTrace();
+                System.exit(1);
+            }
         }
 
-        System.out.println("Compiled to Main.class");
+        System.out.println("Compiled to Main.jar");
+    }
+
+    private static void createJar(byte[] bytecode, String jarPath) throws IOException {
+        Manifest manifest = new Manifest();
+        manifest.getMainAttributes().putValue("Manifest-Version", "1.0");
+        manifest.getMainAttributes().putValue("Main-Class", "Main");
+
+        try (JarOutputStream jos = new JarOutputStream(Files.newOutputStream(Paths.get(jarPath)), manifest)) {
+            // Add Main.class
+            JarEntry mainEntry = new JarEntry("Main.class");
+            jos.putNextEntry(mainEntry);
+            jos.write(bytecode);
+            jos.closeEntry();
+
+            // Add JNA dependencies if available
+            addDependencyClasses(jos, "com.sun.jna");
+            addDependencyClasses(jos, "org.finite");
+        }
+    }
+
+    private static void addDependencyClasses(JarOutputStream jos, String packageName) throws IOException {
+        ClassLoader cl = Thread.currentThread().getContextClassLoader();
+        // Get the package path
+        String path = packageName.replace('.', '/');
+        // Get all resources in the package
+        var resources = cl.getResources(path);
+        while (resources.hasMoreElements()) {
+            var url = resources.nextElement();
+            if (url.getProtocol().equals("jar")) {
+                // Extract from JAR
+                String jarPath = url.getPath();
+                int bangIndex = jarPath.indexOf("!");
+                if (bangIndex > 0) {
+                    jarPath = jarPath.substring(5, bangIndex); // remove "file:" prefix
+                    jarPath = URLDecoder.decode(jarPath, java.nio.charset.StandardCharsets.UTF_8);
+                    try (var jarFile = new java.util.jar.JarFile(jarPath)) {
+                        var entries = jarFile.entries();
+                        while (entries.hasMoreElements()) {
+                            var entry = entries.nextElement();
+                            if (entry.getName().startsWith(path) && !entry.isDirectory()) {
+                                JarEntry jarEntry = new JarEntry(entry.getName());
+                                jos.putNextEntry(jarEntry);
+                                try (var is = jarFile.getInputStream(entry)) {
+                                    is.transferTo(jos);
+                                }
+                                jos.closeEntry();
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }

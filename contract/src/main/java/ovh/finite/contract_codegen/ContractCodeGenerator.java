@@ -28,6 +28,7 @@ public class ContractCodeGenerator implements Opcodes {
         switch (type) {
             case "Int": return "I";
             case "Bool": return "Z";
+            case "Float": return "F";
             default: return "Ljava/lang/Object;"; // fallback
         }
     }
@@ -57,10 +58,43 @@ public class ContractCodeGenerator implements Opcodes {
     }
 
     public byte[] generate(List<ContractStatement> statements) {
-        cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
+        // Use COMPUTE_MAXS flag so ASM computes stack/local values. Per ASM FAQ #3:
+        // "When calling the constructor for ClassWriter use the COMPUTE_MAXS flag.
+        //  You must also still include the visitMaxs method call, but the values you give are ignored,
+        //  so visitMaxs(0,0) is fine."
+        cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
         cw.visit(V17, ACC_PUBLIC, "Main", null, "java/lang/Object", null);
         cw.visitSource(filePath, null);
 
+        // First pass: collect all function descriptors
+        for (ContractStatement stmt : statements) {
+            if (stmt instanceof FunctionDecl) {
+                FunctionDecl decl = (FunctionDecl) stmt;
+                StringBuilder desc = new StringBuilder("(");
+                for (String type : decl.paramTypes) {
+                    desc.append(getDescriptor(type));
+                }
+                desc.append(")").append(getDescriptor(decl.returnType));
+                functionDescriptors.put(decl.name, desc.toString());
+            } else if (stmt instanceof ContractDecl) {
+                ContractDecl contract = (ContractDecl) stmt;
+                for (ContractStatement member : contract.members) {
+                    if (member instanceof FunctionDecl) {
+                        FunctionDecl decl = (FunctionDecl) member;
+                        StringBuilder desc = new StringBuilder("(");
+                        for (String type : decl.paramTypes) {
+                            desc.append(getDescriptor(type));
+                        }
+                        desc.append(")").append(getDescriptor(decl.returnType));
+                        functionDescriptors.put(decl.name, desc.toString());
+                    }
+                }
+            }
+        }
+
+        // Second pass: generate code
+        System.err.println("DEBUG: Function descriptors: " + functionDescriptors);
+        
         // Generate main method
         mv = cw.visitMethod(ACC_PUBLIC | ACC_STATIC, "main", "([Ljava/lang/String;)V", null, null);
         mv.visitCode();
@@ -73,9 +107,8 @@ public class ContractCodeGenerator implements Opcodes {
         }
 
         mv.visitInsn(RETURN);
-        // With COMPUTE_FRAMES, provide reasonable upper bounds for stack and locals
-        // Stack: assume max 10 for expressions, Locals: assume 50 for variables
-        mv.visitMaxs(10, 50);
+        // Per ASM FAQ #3: with COMPUTE_MAXS flag, visitMaxs values are ignored, so (0,0) is fine
+        mv.visitMaxs(0, 0);
         mv.visitEnd();
 
         cw.visitEnd();
@@ -95,7 +128,8 @@ public class ContractCodeGenerator implements Opcodes {
             generateWhileStmt((WhileStmt) stmt);
         } else if (stmt instanceof ExprStatement) {
             generateExpression(((ExprStatement) stmt).expression);
-            // Don't pop, assume expressions in statements are void
+            // Expression statements don't push values we need to use
+            // (we rely on function call side effects instead)
         }
         // Others TODO
     }
@@ -143,8 +177,11 @@ public class ContractCodeGenerator implements Opcodes {
                 } else if ("Bool".equals(type)) {
                     mv.visitVarInsn(ILOAD, i);
                     mv.visitMethodInsn(INVOKESTATIC, "java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;", false);
+                } else if ("Float".equals(type)) {
+                    mv.visitVarInsn(FLOAD, i);
+                    mv.visitMethodInsn(INVOKESTATIC, "java/lang/Float", "valueOf", "(F)Ljava/lang/Float;", false);
                 } else {
-                    // Assume reference type
+                    // Assume reference type (String, etc.)
                     mv.visitVarInsn(ALOAD, i);
                 }
                 mv.visitInsn(AASTORE);
@@ -277,6 +314,17 @@ public class ContractCodeGenerator implements Opcodes {
                 }
             } else if (lit.value instanceof Boolean) {
                 mv.visitInsn(((Boolean) lit.value) ? ICONST_1 : ICONST_0);
+            } else if (lit.value instanceof Double) {
+                double val = (Double) lit.value;
+                if (val == 0.0) {
+                    mv.visitInsn(DCONST_0);
+                } else if (val == 1.0) {
+                    mv.visitInsn(DCONST_1);
+                } else {
+                    mv.visitLdcInsn(val);
+                }
+                // Convert double to Float by casting
+                mv.visitInsn(D2F);
             } else if (lit.value instanceof String) {
                 mv.visitLdcInsn((String) lit.value);
             }

@@ -1,0 +1,8 @@
+Contract Test {
+  fn main() {
+    var x = 5;
+    while (false) {
+      var y = 10;
+    }
+  }
+}

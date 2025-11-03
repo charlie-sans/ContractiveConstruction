@@ -19,6 +19,15 @@ fn ClearBackground(color: Int) {}
 [DllImport("libraylib.so")]
 fn DrawText(text: String, x: Int, y: Int, fontSize: Int, color: Int) {}
 
+[DllImport("libraylib.so")]
+fn BeginMode2D() {}
+
+[DllImport("libraylib.so")]
+fn EndMode2D() {}
+
+[DllImport("libraylib.so")]
+fn DrawCircle(centerX: Int, centerY: Int, radius: Float, color: Int) {}
+
 
 
 Contract Program {
@@ -29,8 +38,9 @@ Contract Program {
     while (!WindowShouldClose()) {
         BeginDrawing()
         BeginMode2D()
-        ClearBackground(BLACK)
-        DrawCircle(400, 300, 50.0, RAYWHITE)
+        // ClearBackground(BLACK)
+        // DrawCircle(400, 300, 50.0, RAYWHITE)
+        DrawText("Hello, world!", 350, 280, 20, RAYWHITE)
         EndMode2D()
         EndDrawing()
     }
