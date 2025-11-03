@@ -78,7 +78,31 @@ public class ContractLexer {
             case '+': addToken(ContractTokenType.PLUS); break;
             case '-': addToken(ContractTokenType.MINUS); break;
             case '*': addToken(ContractTokenType.STAR); break;
-            case '/': addToken(ContractTokenType.SLASH); break;
+            case '/':
+                // Check for comments
+                if (match('/')) {
+                    // Single-line comment - skip until end of line
+                    while (peek() != '\n' && !isAtEnd()) {
+                        advance();
+                    }
+                } else if (match('*')) {
+                    // Multi-line comment - skip until */
+                    while (!isAtEnd()) {
+                        if (peek() == '*' && peekNext() == '/') {
+                            advance(); // consume *
+                            advance(); // consume /
+                            break;
+                        }
+                        if (peek() == '\n') {
+                            line++;
+                            column = 1;
+                        }
+                        advance();
+                    }
+                } else {
+                    addToken(ContractTokenType.SLASH);
+                }
+                break;
             case '=':
                 if (match('=')) addToken(ContractTokenType.EQUAL_EQUAL);
                 else addToken(ContractTokenType.EQUAL);

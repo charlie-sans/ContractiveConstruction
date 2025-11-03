@@ -1,0 +1,352 @@
+Classfile jar:file:///run/media/charlie/the%20cat%20storage%20v2/ContractiveConstruction/Main.jar!/Main.class
+  Last modified Nov 3, 2025; size 1625 bytes
+  SHA-256 checksum f2ea8b602a3e8b8e90eb33513529b79adfbddfb92e1b168215e5e70d17568c10
+  Compiled from "dllimport.contract"
+public class Main
+  minor version: 0
+  major version: 61
+  flags: (0x0001) ACC_PUBLIC
+  this_class: #2                          // Main
+  super_class: #4                         // java/lang/Object
+  interfaces: 0, fields: 0, methods: 12, attributes: 1
+Constant pool:
+   #1 = Utf8               Main
+   #2 = Class              #1             // Main
+   #3 = Utf8               java/lang/Object
+   #4 = Class              #3             // java/lang/Object
+   #5 = Utf8               dllimport.contract
+   #6 = Utf8               main
+   #7 = Utf8               ([Ljava/lang/String;)V
+   #8 = Utf8               InitWindow
+   #9 = Utf8               (IILjava/lang/Object;)V
+  #10 = Utf8               libraylib.so
+  #11 = String             #10            // libraylib.so
+  #12 = Utf8               com/sun/jna/NativeLibrary
+  #13 = Class              #12            // com/sun/jna/NativeLibrary
+  #14 = Utf8               getInstance
+  #15 = Utf8               (Ljava/lang/String;)Lcom/sun/jna/NativeLibrary;
+  #16 = NameAndType        #14:#15        // getInstance:(Ljava/lang/String;)Lcom/sun/jna/NativeLibrary;
+  #17 = Methodref          #13.#16        // com/sun/jna/NativeLibrary.getInstance:(Ljava/lang/String;)Lcom/sun/jna/NativeLibrary;
+  #18 = String             #8             // InitWindow
+  #19 = Utf8               getFunction
+  #20 = Utf8               (Ljava/lang/String;)Lcom/sun/jna/Function;
+  #21 = NameAndType        #19:#20        // getFunction:(Ljava/lang/String;)Lcom/sun/jna/Function;
+  #22 = Methodref          #13.#21        // com/sun/jna/NativeLibrary.getFunction:(Ljava/lang/String;)Lcom/sun/jna/Function;
+  #23 = Utf8               java/lang/Integer
+  #24 = Class              #23            // java/lang/Integer
+  #25 = Utf8               valueOf
+  #26 = Utf8               (I)Ljava/lang/Integer;
+  #27 = NameAndType        #25:#26        // valueOf:(I)Ljava/lang/Integer;
+  #28 = Methodref          #24.#27        // java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+  #29 = Utf8               com/sun/jna/Function
+  #30 = Class              #29            // com/sun/jna/Function
+  #31 = Utf8               invokeVoid
+  #32 = Utf8               ([Ljava/lang/Object;)V
+  #33 = NameAndType        #31:#32        // invokeVoid:([Ljava/lang/Object;)V
+  #34 = Methodref          #30.#33        // com/sun/jna/Function.invokeVoid:([Ljava/lang/Object;)V
+  #35 = Utf8               CloseWindow
+  #36 = Utf8               ()V
+  #37 = String             #35            // CloseWindow
+  #38 = Utf8               WindowShouldClose
+  #39 = Utf8               ()Z
+  #40 = String             #38            // WindowShouldClose
+  #41 = Utf8               invokeInt
+  #42 = Utf8               ([Ljava/lang/Object;)I
+  #43 = NameAndType        #41:#42        // invokeInt:([Ljava/lang/Object;)I
+  #44 = Methodref          #30.#43        // com/sun/jna/Function.invokeInt:([Ljava/lang/Object;)I
+  #45 = Utf8               BeginDrawing
+  #46 = String             #45            // BeginDrawing
+  #47 = Utf8               EndDrawing
+  #48 = String             #47            // EndDrawing
+  #49 = Utf8               ClearBackground
+  #50 = Utf8               (I)V
+  #51 = String             #49            // ClearBackground
+  #52 = Utf8               DrawText
+  #53 = Utf8               (Ljava/lang/Object;IIII)V
+  #54 = String             #52            // DrawText
+  #55 = Utf8               BeginMode2D
+  #56 = String             #55            // BeginMode2D
+  #57 = Utf8               EndMode2D
+  #58 = String             #57            // EndMode2D
+  #59 = Utf8               DrawCircle
+  #60 = Utf8               (IIFI)V
+  #61 = String             #59            // DrawCircle
+  #62 = Utf8               java/lang/Float
+  #63 = Class              #62            // java/lang/Float
+  #64 = Utf8               (F)Ljava/lang/Float;
+  #65 = NameAndType        #25:#64        // valueOf:(F)Ljava/lang/Float;
+  #66 = Methodref          #63.#65        // java/lang/Float.valueOf:(F)Ljava/lang/Float;
+  #67 = Integer            16777215
+  #68 = Integer            800
+  #69 = Integer            600
+  #70 = Utf8               Hello, world!
+  #71 = String             #70            // Hello, world!
+  #72 = NameAndType        #8:#9          // InitWindow:(IILjava/lang/Object;)V
+  #73 = Methodref          #2.#72         // Main.InitWindow:(IILjava/lang/Object;)V
+  #74 = NameAndType        #38:#39        // WindowShouldClose:()Z
+  #75 = Methodref          #2.#74         // Main.WindowShouldClose:()Z
+  #76 = NameAndType        #45:#36        // BeginDrawing:()V
+  #77 = Methodref          #2.#76         // Main.BeginDrawing:()V
+  #78 = NameAndType        #55:#36        // BeginMode2D:()V
+  #79 = Methodref          #2.#78         // Main.BeginMode2D:()V
+  #80 = NameAndType        #49:#50        // ClearBackground:(I)V
+  #81 = Methodref          #2.#80         // Main.ClearBackground:(I)V
+  #82 = Integer            400
+  #83 = Integer            300
+  #84 = Double             50.0d
+  #86 = NameAndType        #59:#60        // DrawCircle:(IIFI)V
+  #87 = Methodref          #2.#86         // Main.DrawCircle:(IIFI)V
+  #88 = NameAndType        #57:#36        // EndMode2D:()V
+  #89 = Methodref          #2.#88         // Main.EndMode2D:()V
+  #90 = NameAndType        #47:#36        // EndDrawing:()V
+  #91 = Methodref          #2.#90         // Main.EndDrawing:()V
+  #92 = Utf8               Code
+  #93 = Utf8               SourceFile
+{
+  public static void main(java.lang.String[]);
+    descriptor: ([Ljava/lang/String;)V
+    flags: (0x0009) ACC_PUBLIC, ACC_STATIC
+    Code:
+      stack=4, locals=2, args_size=1
+         0: ldc           #67                 // int 16777215
+         2: istore_0
+         3: iconst_0
+         4: istore_1
+         5: ldc           #68                 // int 800
+         7: ldc           #69                 // int 600
+         9: ldc           #71                 // String Hello, world!
+        11: invokestatic  #73                 // Method InitWindow:(IILjava/lang/Object;)V
+        14: invokestatic  #75                 // Method WindowShouldClose:()Z
+        17: iconst_1
+        18: ixor
+        19: ifeq          53
+        22: invokestatic  #77                 // Method BeginDrawing:()V
+        25: invokestatic  #79                 // Method BeginMode2D:()V
+        28: iload_1
+        29: invokestatic  #81                 // Method ClearBackground:(I)V
+        32: ldc           #82                 // int 400
+        34: ldc           #83                 // int 300
+        36: ldc2_w        #84                 // double 50.0d
+        39: d2f
+        40: iload_0
+        41: invokestatic  #87                 // Method DrawCircle:(IIFI)V
+        44: invokestatic  #89                 // Method EndMode2D:()V
+        47: invokestatic  #91                 // Method EndDrawing:()V
+        50: goto          14
+        53: return
+
+  public static void InitWindow(int, int, java.lang.Object);
+    descriptor: (IILjava/lang/Object;)V
+    flags: (0x0009) ACC_PUBLIC, ACC_STATIC
+    Code:
+      stack=5, locals=3, args_size=3
+         0: ldc           #11                 // String libraylib.so
+         2: invokestatic  #17                 // Method com/sun/jna/NativeLibrary.getInstance:(Ljava/lang/String;)Lcom/sun/jna/NativeLibrary;
+         5: ldc           #18                 // String InitWindow
+         7: invokevirtual #22                 // Method com/sun/jna/NativeLibrary.getFunction:(Ljava/lang/String;)Lcom/sun/jna/Function;
+        10: bipush        3
+        12: anewarray     #4                  // class java/lang/Object
+        15: dup
+        16: bipush        0
+        18: iload_0
+        19: invokestatic  #28                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        22: aastore
+        23: dup
+        24: bipush        1
+        26: iload_1
+        27: invokestatic  #28                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        30: aastore
+        31: dup
+        32: bipush        2
+        34: aload_2
+        35: aastore
+        36: invokevirtual #34                 // Method com/sun/jna/Function.invokeVoid:([Ljava/lang/Object;)V
+        39: return
+
+  public static void CloseWindow();
+    descriptor: ()V
+    flags: (0x0009) ACC_PUBLIC, ACC_STATIC
+    Code:
+      stack=2, locals=0, args_size=0
+         0: ldc           #11                 // String libraylib.so
+         2: invokestatic  #17                 // Method com/sun/jna/NativeLibrary.getInstance:(Ljava/lang/String;)Lcom/sun/jna/NativeLibrary;
+         5: ldc           #37                 // String CloseWindow
+         7: invokevirtual #22                 // Method com/sun/jna/NativeLibrary.getFunction:(Ljava/lang/String;)Lcom/sun/jna/Function;
+        10: bipush        0
+        12: anewarray     #4                  // class java/lang/Object
+        15: invokevirtual #34                 // Method com/sun/jna/Function.invokeVoid:([Ljava/lang/Object;)V
+        18: return
+
+  public static boolean WindowShouldClose();
+    descriptor: ()Z
+    flags: (0x0009) ACC_PUBLIC, ACC_STATIC
+    Code:
+      stack=2, locals=0, args_size=0
+         0: ldc           #11                 // String libraylib.so
+         2: invokestatic  #17                 // Method com/sun/jna/NativeLibrary.getInstance:(Ljava/lang/String;)Lcom/sun/jna/NativeLibrary;
+         5: ldc           #40                 // String WindowShouldClose
+         7: invokevirtual #22                 // Method com/sun/jna/NativeLibrary.getFunction:(Ljava/lang/String;)Lcom/sun/jna/Function;
+        10: bipush        0
+        12: anewarray     #4                  // class java/lang/Object
+        15: invokevirtual #44                 // Method com/sun/jna/Function.invokeInt:([Ljava/lang/Object;)I
+        18: ifeq          25
+        21: iconst_1
+        22: goto          26
+        25: iconst_0
+        26: ireturn
+
+  public static void BeginDrawing();
+    descriptor: ()V
+    flags: (0x0009) ACC_PUBLIC, ACC_STATIC
+    Code:
+      stack=2, locals=0, args_size=0
+         0: ldc           #11                 // String libraylib.so
+         2: invokestatic  #17                 // Method com/sun/jna/NativeLibrary.getInstance:(Ljava/lang/String;)Lcom/sun/jna/NativeLibrary;
+         5: ldc           #46                 // String BeginDrawing
+         7: invokevirtual #22                 // Method com/sun/jna/NativeLibrary.getFunction:(Ljava/lang/String;)Lcom/sun/jna/Function;
+        10: bipush        0
+        12: anewarray     #4                  // class java/lang/Object
+        15: invokevirtual #34                 // Method com/sun/jna/Function.invokeVoid:([Ljava/lang/Object;)V
+        18: return
+
+  public static void EndDrawing();
+    descriptor: ()V
+    flags: (0x0009) ACC_PUBLIC, ACC_STATIC
+    Code:
+      stack=2, locals=0, args_size=0
+         0: ldc           #11                 // String libraylib.so
+         2: invokestatic  #17                 // Method com/sun/jna/NativeLibrary.getInstance:(Ljava/lang/String;)Lcom/sun/jna/NativeLibrary;
+         5: ldc           #48                 // String EndDrawing
+         7: invokevirtual #22                 // Method com/sun/jna/NativeLibrary.getFunction:(Ljava/lang/String;)Lcom/sun/jna/Function;
+        10: bipush        0
+        12: anewarray     #4                  // class java/lang/Object
+        15: invokevirtual #34                 // Method com/sun/jna/Function.invokeVoid:([Ljava/lang/Object;)V
+        18: return
+
+  public static void ClearBackground(int);
+    descriptor: (I)V
+    flags: (0x0009) ACC_PUBLIC, ACC_STATIC
+    Code:
+      stack=5, locals=1, args_size=1
+         0: ldc           #11                 // String libraylib.so
+         2: invokestatic  #17                 // Method com/sun/jna/NativeLibrary.getInstance:(Ljava/lang/String;)Lcom/sun/jna/NativeLibrary;
+         5: ldc           #51                 // String ClearBackground
+         7: invokevirtual #22                 // Method com/sun/jna/NativeLibrary.getFunction:(Ljava/lang/String;)Lcom/sun/jna/Function;
+        10: bipush        1
+        12: anewarray     #4                  // class java/lang/Object
+        15: dup
+        16: bipush        0
+        18: iload_0
+        19: invokestatic  #28                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        22: aastore
+        23: invokevirtual #34                 // Method com/sun/jna/Function.invokeVoid:([Ljava/lang/Object;)V
+        26: return
+
+  public static void DrawText(java.lang.Object, int, int, int, int);
+    descriptor: (Ljava/lang/Object;IIII)V
+    flags: (0x0009) ACC_PUBLIC, ACC_STATIC
+    Code:
+      stack=5, locals=5, args_size=5
+         0: ldc           #11                 // String libraylib.so
+         2: invokestatic  #17                 // Method com/sun/jna/NativeLibrary.getInstance:(Ljava/lang/String;)Lcom/sun/jna/NativeLibrary;
+         5: ldc           #54                 // String DrawText
+         7: invokevirtual #22                 // Method com/sun/jna/NativeLibrary.getFunction:(Ljava/lang/String;)Lcom/sun/jna/Function;
+        10: bipush        5
+        12: anewarray     #4                  // class java/lang/Object
+        15: dup
+        16: bipush        0
+        18: aload_0
+        19: aastore
+        20: dup
+        21: bipush        1
+        23: iload_1
+        24: invokestatic  #28                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        27: aastore
+        28: dup
+        29: bipush        2
+        31: iload_2
+        32: invokestatic  #28                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        35: aastore
+        36: dup
+        37: bipush        3
+        39: iload_3
+        40: invokestatic  #28                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        43: aastore
+        44: dup
+        45: bipush        4
+        47: iload         4
+        49: invokestatic  #28                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        52: aastore
+        53: invokevirtual #34                 // Method com/sun/jna/Function.invokeVoid:([Ljava/lang/Object;)V
+        56: return
+
+  public static void BeginMode2D();
+    descriptor: ()V
+    flags: (0x0009) ACC_PUBLIC, ACC_STATIC
+    Code:
+      stack=2, locals=0, args_size=0
+         0: ldc           #11                 // String libraylib.so
+         2: invokestatic  #17                 // Method com/sun/jna/NativeLibrary.getInstance:(Ljava/lang/String;)Lcom/sun/jna/NativeLibrary;
+         5: ldc           #56                 // String BeginMode2D
+         7: invokevirtual #22                 // Method com/sun/jna/NativeLibrary.getFunction:(Ljava/lang/String;)Lcom/sun/jna/Function;
+        10: bipush        0
+        12: anewarray     #4                  // class java/lang/Object
+        15: invokevirtual #34                 // Method com/sun/jna/Function.invokeVoid:([Ljava/lang/Object;)V
+        18: return
+
+  public static void EndMode2D();
+    descriptor: ()V
+    flags: (0x0009) ACC_PUBLIC, ACC_STATIC
+    Code:
+      stack=2, locals=0, args_size=0
+         0: ldc           #11                 // String libraylib.so
+         2: invokestatic  #17                 // Method com/sun/jna/NativeLibrary.getInstance:(Ljava/lang/String;)Lcom/sun/jna/NativeLibrary;
+         5: ldc           #58                 // String EndMode2D
+         7: invokevirtual #22                 // Method com/sun/jna/NativeLibrary.getFunction:(Ljava/lang/String;)Lcom/sun/jna/Function;
+        10: bipush        0
+        12: anewarray     #4                  // class java/lang/Object
+        15: invokevirtual #34                 // Method com/sun/jna/Function.invokeVoid:([Ljava/lang/Object;)V
+        18: return
+
+  public static void DrawCircle(int, int, float, int);
+    descriptor: (IIFI)V
+    flags: (0x0009) ACC_PUBLIC, ACC_STATIC
+    Code:
+      stack=5, locals=4, args_size=4
+         0: ldc           #11                 // String libraylib.so
+         2: invokestatic  #17                 // Method com/sun/jna/NativeLibrary.getInstance:(Ljava/lang/String;)Lcom/sun/jna/NativeLibrary;
+         5: ldc           #61                 // String DrawCircle
+         7: invokevirtual #22                 // Method com/sun/jna/NativeLibrary.getFunction:(Ljava/lang/String;)Lcom/sun/jna/Function;
+        10: bipush        4
+        12: anewarray     #4                  // class java/lang/Object
+        15: dup
+        16: bipush        0
+        18: iload_0
+        19: invokestatic  #28                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        22: aastore
+        23: dup
+        24: bipush        1
+        26: iload_1
+        27: invokestatic  #28                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        30: aastore
+        31: dup
+        32: bipush        2
+        34: fload_2
+        35: invokestatic  #66                 // Method java/lang/Float.valueOf:(F)Ljava/lang/Float;
+        38: aastore
+        39: dup
+        40: bipush        3
+        42: iload_3
+        43: invokestatic  #28                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        46: aastore
+        47: invokevirtual #34                 // Method com/sun/jna/Function.invokeVoid:([Ljava/lang/Object;)V
+        50: return
+
+  public static void main();
+    descriptor: ()V
+    flags: (0x0009) ACC_PUBLIC, ACC_STATIC
+    Code:
+      stack=0, locals=0, args_size=0
+         0: return
+}
+SourceFile: "dllimport.contract"

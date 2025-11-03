@@ -29,6 +29,7 @@ public class ContractCodeGenerator implements Opcodes {
             case "Int": return "I";
             case "Bool": return "Z";
             case "Float": return "F";
+            case "String": return "Ljava/lang/String;";
             default: return "Ljava/lang/Object;"; // fallback
         }
     }
@@ -58,11 +59,8 @@ public class ContractCodeGenerator implements Opcodes {
     }
 
     public byte[] generate(List<ContractStatement> statements) {
-        // Use COMPUTE_MAXS flag so ASM computes stack/local values. Per ASM FAQ #3:
-        // "When calling the constructor for ClassWriter use the COMPUTE_MAXS flag.
-        //  You must also still include the visitMaxs method call, but the values you give are ignored,
-        //  so visitMaxs(0,0) is fine."
-        cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
+        // Use COMPUTE_MAXS | COMPUTE_FRAMES for Java 8+ compatibility with stack maps
+        cw = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
         cw.visit(V17, ACC_PUBLIC, "Main", null, "java/lang/Object", null);
         cw.visitSource(filePath, null);
 
@@ -94,20 +92,70 @@ public class ContractCodeGenerator implements Opcodes {
 
         // Second pass: generate code
         System.err.println("DEBUG: Function descriptors: " + functionDescriptors);
-        
-        // Generate main method
-        mv = cw.visitMethod(ACC_PUBLIC | ACC_STATIC, "main", "([Ljava/lang/String;)V", null, null);
-        mv.visitCode();
 
-        varIndex = 1; // local 0 is args array
-        variables.clear();
-
+        // Find the contract main function
+        FunctionDecl contractMain = null;
         for (ContractStatement stmt : statements) {
-            generateStatement(stmt);
+            if (stmt instanceof ContractDecl) {
+                ContractDecl contract = (ContractDecl) stmt;
+                for (ContractStatement member : contract.members) {
+                    if (member instanceof FunctionDecl) {
+                        FunctionDecl decl = (FunctionDecl) member;
+                        if ("main".equals(decl.name) && decl.paramTypes.isEmpty()) {
+                            contractMain = decl;
+                        }
+                    }
+                }
+            } else if (stmt instanceof FunctionDecl) {
+                FunctionDecl decl = (FunctionDecl) stmt;
+                if ("main".equals(decl.name) && decl.paramTypes.isEmpty()) {
+                    contractMain = decl;
+                }
+            }
         }
 
+        // Third pass: generate all function declarations (especially DllImport stubs)
+        // But skip the contract's main function - we'll inline it into main(String[] args)
+        for (ContractStatement stmt : statements) {
+            if (stmt instanceof FunctionDecl) {
+                FunctionDecl decl = (FunctionDecl) stmt;
+                // Skip top-level main function if we're inlining it
+                if (!("main".equals(decl.name) && decl.paramTypes.isEmpty() && contractMain != null)) {
+                    generateFunctionDecl(decl);
+                }
+            } else if (stmt instanceof ContractDecl) {
+                ContractDecl contract = (ContractDecl) stmt;
+                for (ContractStatement member : contract.members) {
+                    if (member instanceof FunctionDecl) {
+                        FunctionDecl decl = (FunctionDecl) member;
+                        // Skip contract's main function - we'll inline it into main(String[] args)
+                        if (!("main".equals(decl.name) && decl.paramTypes.isEmpty())) {
+                            generateFunctionDecl(decl);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Generate main(String[] args) and inline contract main body
+        mv = cw.visitMethod(ACC_PUBLIC | ACC_STATIC, "main", "([Ljava/lang/String;)V", null, null);
+        mv.visitCode();
+        varIndex = 1; // local 0 is args array
+        variables.clear();
+        if (contractMain != null) {
+            for (ContractStatement stmt : contractMain.body) {
+                generateStatement(stmt);
+            }
+        } else {
+            // fallback: generate all top-level statements that aren't FunctionDecls or ContractDecls
+            // (those were already generated in the third pass)
+            for (ContractStatement stmt : statements) {
+                if (!(stmt instanceof FunctionDecl) && !(stmt instanceof ContractDecl)) {
+                    generateStatement(stmt);
+                }
+            }
+        }
         mv.visitInsn(RETURN);
-        // Per ASM FAQ #3: with COMPUTE_MAXS flag, visitMaxs values are ignored, so (0,0) is fine
         mv.visitMaxs(0, 0);
         mv.visitEnd();
 
@@ -167,22 +215,29 @@ public class ContractCodeGenerator implements Opcodes {
             int paramCount = decl.paramTypes.size();
             mv.visitIntInsn(BIPUSH, paramCount);
             mv.visitTypeInsn(ANEWARRAY, "java/lang/Object");
+            
+            // Calculate proper local variable indices (accounting for slot sizes)
+            int varSlot = 0;
             for (int i = 0; i < paramCount; i++) {
                 mv.visitInsn(DUP);
                 mv.visitIntInsn(BIPUSH, i);
                 String type = decl.paramTypes.get(i);
                 if ("Int".equals(type)) {
-                    mv.visitVarInsn(ILOAD, i);
+                    mv.visitVarInsn(ILOAD, varSlot);
                     mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false);
+                    varSlot += 1;
                 } else if ("Bool".equals(type)) {
-                    mv.visitVarInsn(ILOAD, i);
+                    mv.visitVarInsn(ILOAD, varSlot);
                     mv.visitMethodInsn(INVOKESTATIC, "java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;", false);
+                    varSlot += 1;
                 } else if ("Float".equals(type)) {
-                    mv.visitVarInsn(FLOAD, i);
+                    mv.visitVarInsn(FLOAD, varSlot);
                     mv.visitMethodInsn(INVOKESTATIC, "java/lang/Float", "valueOf", "(F)Ljava/lang/Float;", false);
+                    varSlot += 2;  // Float takes 2 slots
                 } else {
                     // Assume reference type (String, etc.)
-                    mv.visitVarInsn(ALOAD, i);
+                    mv.visitVarInsn(ALOAD, varSlot);
+                    varSlot += 1;
                 }
                 mv.visitInsn(AASTORE);
             }
@@ -214,8 +269,8 @@ public class ContractCodeGenerator implements Opcodes {
         } else {
             // Normal function
             int access = ACC_PUBLIC | ACC_STATIC;
-            MethodVisitor funcMv = cw.visitMethod(access, decl.name, desc.toString(), null, null);
-            funcMv.visitCode();
+            mv = cw.visitMethod(access, decl.name, desc.toString(), null, null);
+            mv.visitCode();
 
             // Set up variables
             Map<String, Integer> oldVariables = variables;
@@ -236,17 +291,20 @@ public class ContractCodeGenerator implements Opcodes {
             if (decl.returnType != null) {
                 // Assume return 0 or false
                 if ("Int".equals(decl.returnType)) {
-                    funcMv.visitInsn(ICONST_0);
-                    funcMv.visitInsn(IRETURN);
+                    mv.visitInsn(ICONST_0);
+                    mv.visitInsn(IRETURN);
                 } else if ("Bool".equals(decl.returnType)) {
-                    funcMv.visitInsn(ICONST_0);
-                    funcMv.visitInsn(IRETURN);
+                    mv.visitInsn(ICONST_0);
+                    mv.visitInsn(IRETURN);
                 }
             } else {
-                funcMv.visitInsn(RETURN);
+                mv.visitInsn(RETURN);
             }
-            funcMv.visitMaxs(0, 0);
-            funcMv.visitEnd();
+            mv.visitMaxs(0, 0);
+            mv.visitEnd();
+            
+            // Reset mv after generating this function
+            mv = null;
         }
     }
 

@@ -1,6 +1,7 @@
 [DllImport("libraylib.so")]
 fn InitWindow(width: Int, height: Int, title: String) {}
 
+// This initializes raylib window
 [DllImport("libraylib.so")]
 fn CloseWindow() {}
 
@@ -38,8 +39,8 @@ Contract Program {
     while (!WindowShouldClose()) {
         BeginDrawing()
         BeginMode2D()
-        // ClearBackground(BLACK)
-        // DrawCircle(400, 300, 50.0, RAYWHITE)
+        ClearBackground(BLACK)
+        DrawCircle(400, 300, 50.0, RAYWHITE)
         DrawText("Hello, world!", 350, 280, 20, RAYWHITE)
         EndMode2D()
         EndDrawing()
