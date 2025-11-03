@@ -30,6 +30,7 @@ public class ContractLexer {
         keywords.put("while", ContractTokenType.WHILE);
         keywords.put("switch", ContractTokenType.SWITCH);
         keywords.put("case", ContractTokenType.CASE);
+        keywords.put("import", ContractTokenType.IMPORT);
     }
 
     public ContractLexer(String source, DiagnosticReporter reporter) {

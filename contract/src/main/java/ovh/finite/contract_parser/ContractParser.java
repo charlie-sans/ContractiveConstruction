@@ -33,7 +33,7 @@ public class ContractParser {
         }
         List<ContractStatement> statements = new ArrayList<>();
         while (!isAtEnd()) {
-            if (check(ContractTokenType.CONTRACT) || check(ContractTokenType.FN) || check(ContractTokenType.LBRACKET)) {
+            if (check(ContractTokenType.IMPORT) || check(ContractTokenType.CONTRACT) || check(ContractTokenType.FN) || check(ContractTokenType.LBRACKET)) {
                 ContractStatement stmt = parseTopLevel();
                 if (stmt != null) {
                     statements.add(stmt);
@@ -123,6 +123,9 @@ public class ContractParser {
     }
 
     private ContractStatement parseTopLevel() {
+        if (match(ContractTokenType.IMPORT)) {
+            return parseImportStatement();
+        }
         List<Attribute> attributes = parseAttributes();
         if (match(ContractTokenType.CONTRACT)) {
             return parseContractDecl(attributes);
@@ -133,6 +136,14 @@ public class ContractParser {
             reporter.report(new Diagnostic(Diagnostic.Level.ERROR, "Expected top-level declaration", null, token.line, token.column, "E006", null));
             return null;
         }
+    }
+
+    private ImportStatement parseImportStatement() {
+        consume(ContractTokenType.LBRACKET, "Expected '[' after import");
+        ContractToken pathToken = consume(ContractTokenType.STRING, "Expected file path in import");
+        consume(ContractTokenType.RBRACKET, "Expected ']' after import path");
+        String filePath = (String) pathToken.literal;
+        return new ImportStatement(filePath);
     }
 
     private ContractDecl parseContractDecl(List<Attribute> attributes) {

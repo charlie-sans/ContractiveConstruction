@@ -4,6 +4,7 @@ import ovh.finite.DiagnosticReporter;
 import ovh.finite.ast.Statement;
 import ovh.finite.codegen.CodeGenerator;
 import ovh.finite.contract_ast.ContractStatement;
+import ovh.finite.contract_ast.ImportStatement;
 import ovh.finite.contract_codegen.ContractCodeGenerator;
 import ovh.finite.contract_lexer.ContractLexer;
 import ovh.finite.contract_lexer.ContractToken;
@@ -15,7 +16,9 @@ import ovh.finite.parser.Parser;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
@@ -118,6 +121,14 @@ public class Main {
                 System.exit(1);
             }
 
+            // Resolve imports
+            statements = resolveImports(statements, filePath, reporter, debug);
+
+            if (reporter.hasErrors()) {
+                reporter.printDiagnostics();
+                System.exit(1);
+            }
+
             ContractCodeGenerator generator = new ContractCodeGenerator(filePath);
             try {
                 byte[] bytecode = generator.generate(statements);
@@ -182,5 +193,53 @@ public class Main {
                 }
             }
         }
+    }
+
+    private static List<ContractStatement> resolveImports(List<ContractStatement> statements, String basePath, DiagnosticReporter reporter, boolean debug) throws IOException {
+        List<ContractStatement> resolved = new ArrayList<>();
+        Path baseDirPath = Paths.get(basePath).toAbsolutePath().getParent();
+        if (baseDirPath == null) {
+            baseDirPath = Paths.get(".").toAbsolutePath();
+        }
+
+        for (ContractStatement stmt : statements) {
+            if (stmt instanceof ImportStatement) {
+                ImportStatement importStmt = (ImportStatement) stmt;
+                Path importPath = baseDirPath.resolve(importStmt.filePath).toAbsolutePath();
+
+                if (!Files.exists(importPath)) {
+                    reporter.report(new Diagnostic(Diagnostic.Level.ERROR, "Import file not found: " + importPath, null, 0, 0, "E100", null));
+                    continue;
+                }
+
+                String importSource = new String(Files.readAllBytes(importPath));
+                DiagnosticReporter importReporter = new DiagnosticReporter(importSource, importPath.toString());
+
+                // Parse imported file
+                ContractLexer importLexer = new ContractLexer(importSource, importReporter, debug);
+                List<ContractToken> importTokens = importLexer.scanTokens();
+
+                if (importReporter.hasErrors()) {
+                    reporter.report(new Diagnostic(Diagnostic.Level.ERROR, "Errors in imported file: " + importPath, null, 0, 0, "E100", null));
+                    continue;
+                }
+
+                ContractParser importParser = new ContractParser(importTokens, importReporter, debug);
+                List<ContractStatement> importedStmts = importParser.parse();
+
+                if (importReporter.hasErrors()) {
+                    reporter.report(new Diagnostic(Diagnostic.Level.ERROR, "Parse errors in imported file: " + importPath, null, 0, 0, "E100", null));
+                    continue;
+                }
+
+                // Recursively resolve imports in the imported file
+                List<ContractStatement> resolvedImported = resolveImports(importedStmts, importPath.toString(), reporter, debug);
+                resolved.addAll(resolvedImported);
+            } else {
+                resolved.add(stmt);
+            }
+        }
+
+        return resolved;
     }
 }

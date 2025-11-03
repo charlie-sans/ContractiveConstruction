@@ -2,7 +2,7 @@ package ovh.finite.contract_lexer;
 
 public enum ContractTokenType {
     // Keywords
-    CONTRACT, FN, VAR, IF, ELSE, WHILE, SWITCH, CASE,
+    CONTRACT, FN, VAR, IF, ELSE, WHILE, SWITCH, CASE, IMPORT,
 
     // Literals
     IDENTIFIER, STRING, INT, FLOAT, TRUE, FALSE,

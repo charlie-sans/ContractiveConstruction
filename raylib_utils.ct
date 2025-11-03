@@ -1,0 +1,8 @@
+[DllImport("libraylib.so")]
+fn InitWindow(width: Int, height: Int, title: String) {}
+
+[DllImport("libraylib.so")]
+fn CloseWindow() {}
+
+[DllImport("libraylib.so")]
+fn WindowShouldClose() -> Bool {}

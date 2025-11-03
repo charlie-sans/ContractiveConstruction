@@ -1,0 +1,21 @@
+import ["raylib_utils.ct"]
+
+[DllImport("libraylib.so")]
+fn BeginDrawing() {}
+
+[DllImport("libraylib.so")]
+fn EndDrawing() {}
+
+[DllImport("libraylib.so")]
+fn ClearBackground(color: Int) {}
+
+Contract Program {
+  fn main() {
+    var title = "Hello from imports!"
+    InitWindow(800, 600, title)
+    BeginDrawing()
+    ClearBackground(0x000000)
+    EndDrawing()
+    CloseWindow()
+  }
+}
