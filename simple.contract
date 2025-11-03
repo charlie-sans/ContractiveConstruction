@@ -1,0 +1,5 @@
+Contract Test {
+  fn main() {
+    var x = !true;
+  }
+}

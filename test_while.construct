@@ -1,0 +1,5 @@
+let x = 5
+while x > 0 do
+  dump(x)
+  let x = x - 1
+end

@@ -1,0 +1,17 @@
+package ovh.finite.lexer;
+
+public enum TokenType {
+    // Keywords
+    LET, FN, TYPE, IMPORT, IF, THEN, ELSE, MATCH, FOR, IN, DO, END, WHILE,
+
+    // Literals
+    IDENTIFIER, STRING, INT, FLOAT, TRUE, FALSE,
+
+    // Symbols
+    EQUAL, LPAREN, RPAREN, LBRACE, RBRACE, LBRACKET, RBRACKET, COMMA, DOT, COLON,
+    PLUS, MINUS, STAR, SLASH, PERCENT, EQUAL_EQUAL, BANG_EQUAL, LESS, LESS_EQUAL, GREATER, GREATER_EQUAL,
+    ARROW, PIPE, UNDERSCORE,
+
+    // Special
+    EOF
+}

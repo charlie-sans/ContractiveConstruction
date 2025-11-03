@@ -1,0 +1,32 @@
+[DllImport("libraylib.so")]
+fn InitWindow(width: Int, height: Int, title: String) {}
+
+[DllImport("libraylib.so")]
+fn CloseWindow() {}
+
+[DllImport("libraylib.so")]
+fn WindowShouldClose() -> Bool {}
+
+[DllImport("libraylib.so")]
+fn BeginDrawing() {}
+
+[DllImport("libraylib.so")]
+fn EndDrawing() {}
+
+[DllImport("libraylib.so")]
+fn ClearBackground(color: Int) {}
+
+[DllImport("libraylib.so")]
+fn DrawText(text: String, x: Int, y: Int, fontSize: Int, color: Int) {}
+
+Contract Program {
+  fn main() {
+    InitWindow(800, 600, "Hello, world!")
+    while (!WindowShouldClose()) {
+      BeginDrawing()
+      ClearBackground(0xFFFFFF)
+      DrawText("Hello, world!", 190, 200, 20, 0x000000)
+      EndDrawing()
+    }
+  }
+}

@@ -1,0 +1,6 @@
+let x = 1
+let kind = match x:
+  | 0 -> "zero"
+  | 1 -> "one"
+  | _ -> "other"
+dump(kind)
