@@ -12,17 +12,33 @@ import java.util.List;
 public class Parser {
     private final List<Token> tokens;
     private final DiagnosticReporter reporter;
+    private final boolean debug;
     private int current = 0;
 
     public Parser(List<Token> tokens, DiagnosticReporter reporter) {
+        this(tokens, reporter, false);
+    }
+
+    public Parser(List<Token> tokens, DiagnosticReporter reporter, boolean debug) {
         this.tokens = tokens;
         this.reporter = reporter;
+        this.debug = debug;
     }
 
     public List<Statement> parse() {
+        if (debug) {
+            System.out.println("=== PARSER DEBUG ===");
+        }
         List<Statement> statements = new ArrayList<>();
         while (!isAtEnd()) {
-            statements.add(parseStatement());
+            Statement stmt = parseStatement();
+            statements.add(stmt);
+            if (debug) {
+                System.out.println("Parsed statement: " + stmt);
+            }
+        }
+        if (debug) {
+            System.out.println("=== PARSER COMPLETE ===");
         }
         return statements;
     }

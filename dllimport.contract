@@ -19,14 +19,20 @@ fn ClearBackground(color: Int) {}
 [DllImport("libraylib.so")]
 fn DrawText(text: String, x: Int, y: Int, fontSize: Int, color: Int) {}
 
+
+
 Contract Program {
   fn main() {
+    var RAYWHITE = 0xFFFFFF
+    var BLACK = 0x000000
     InitWindow(800, 600, "Hello, world!")
     while (!WindowShouldClose()) {
-      BeginDrawing()
-      ClearBackground(0xFFFFFF)
-      DrawText("Hello, world!", 190, 200, 20, 0x000000)
-      EndDrawing()
+        BeginDrawing()
+        BeginMode2D()
+        ClearBackground(BLACK)
+        DrawCircle(400, 300, 50.0, RAYWHITE)
+        EndMode2D()
+        EndDrawing()
     }
   }
 }

@@ -25,6 +25,7 @@ public class Main {
     public static void main(String[] args) throws IOException {
         String langArg = null;
         String filePath = null;
+        boolean debug = false;
 
         for (int i = 0; i < args.length; i++) {
             if (args[i].equals("--lang")) {
@@ -35,16 +36,18 @@ public class Main {
                     System.err.println("Error: --lang requires a value");
                     System.exit(1);
                 }
+            } else if (args[i].equals("--debug")) {
+                debug = true;
             } else if (filePath == null) {
                 filePath = args[i];
             } else {
-                System.err.println("Usage: java -jar ccl.jar [--lang <language>] <source file>");
+                System.err.println("Usage: java -jar ccl.jar [--lang <language>] [--debug] <source file>");
                 System.exit(1);
             }
         }
 
         if (filePath == null) {
-            System.err.println("Usage: java -jar ccl.jar [--lang <language>] <source file>");
+            System.err.println("Usage: java -jar ccl.jar [--lang <language>] [--debug] <source file>");
             System.exit(1);
         }
 
@@ -74,7 +77,7 @@ public class Main {
         DiagnosticReporter reporter = new DiagnosticReporter(source, filePath);
 
         if (lang == Language.CONSTRUCT) {
-            Lexer lexer = new Lexer(source, reporter);
+            Lexer lexer = new Lexer(source, reporter, debug);
             List<Token> tokens = lexer.scanTokens();
 
             if (reporter.hasErrors()) {
@@ -82,7 +85,7 @@ public class Main {
                 System.exit(1);
             }
 
-            Parser parser = new Parser(tokens, reporter);
+            Parser parser = new Parser(tokens, reporter, debug);
             List<Statement> statements = parser.parse();
 
             if (reporter.hasErrors()) {
@@ -95,7 +98,7 @@ public class Main {
 
             Files.write(Paths.get("Main.class"), bytecode);
         } else {
-            ContractLexer lexer = new ContractLexer(source, reporter);
+            ContractLexer lexer = new ContractLexer(source, reporter, debug);
             List<ContractToken> tokens = lexer.scanTokens();
 
             if (reporter.hasErrors()) {
@@ -103,7 +106,7 @@ public class Main {
                 System.exit(1);
             }
 
-            ContractParser parser = new ContractParser(tokens, reporter);
+            ContractParser parser = new ContractParser(tokens, reporter, debug);
             List<ContractStatement> statements = parser.parse();
 
             if (reporter.hasErrors()) {

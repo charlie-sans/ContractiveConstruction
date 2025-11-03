@@ -7,22 +7,49 @@ import ovh.finite.contract_lexer.ContractToken;
 import ovh.finite.contract_lexer.ContractTokenType;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class ContractParser {
     private final List<ContractToken> tokens;
     private final DiagnosticReporter reporter;
+    private final boolean debug;
     private int current = 0;
 
     public ContractParser(List<ContractToken> tokens, DiagnosticReporter reporter) {
+        this(tokens, reporter, false);
+    }
+
+    public ContractParser(List<ContractToken> tokens, DiagnosticReporter reporter, boolean debug) {
         this.tokens = tokens;
         this.reporter = reporter;
+        this.debug = debug;
     }
 
     public List<ContractStatement> parse() {
+        if (debug) {
+            System.out.println("=== CONTRACT PARSER DEBUG ===");
+        }
         List<ContractStatement> statements = new ArrayList<>();
-        while (!isAtEnd() && (check(ContractTokenType.CONTRACT) || check(ContractTokenType.FN) || check(ContractTokenType.LBRACKET))) {
-            statements.add(parseTopLevel());
+        while (!isAtEnd()) {
+            if (check(ContractTokenType.CONTRACT) || check(ContractTokenType.FN) || check(ContractTokenType.LBRACKET)) {
+                ContractStatement stmt = parseTopLevel();
+                if (stmt != null) {
+                    statements.add(stmt);
+                    if (reporter.hasReachedMaxErrors()) break;
+                    if (debug) {
+                        System.out.println("Parsed contract statement: " + stmt);
+                    }
+                } else {
+                    synchronize();
+                }
+            } else {
+                synchronize();
+            }
+        }
+        if (debug) {
+            System.out.println("=== CONTRACT PARSER COMPLETE ===");
         }
         return statements;
     }
@@ -31,15 +58,68 @@ public class ContractParser {
         List<Attribute> attributes = new ArrayList<>();
         while (match(ContractTokenType.LBRACKET)) {
             String name = consume(ContractTokenType.IDENTIFIER, "Expected attribute name").lexeme;
-            String param = null;
+            
+            Map<String, Object> namedParams = new HashMap<>();
+            List<Object> positionalParams = new ArrayList<>();
+            
+            // Parse attribute parameters: [Name] or [Name(params)]
             if (match(ContractTokenType.LPAREN)) {
-                param = consume(ContractTokenType.STRING, "Expected string parameter").literal.toString();
-                consume(ContractTokenType.RPAREN, "Expected ')' after parameter");
+                if (!check(ContractTokenType.RPAREN)) {
+                    parseAttributeParameters(namedParams, positionalParams);
+                }
+                consume(ContractTokenType.RPAREN, "Expected ')' after parameters");
             }
+            
             consume(ContractTokenType.RBRACKET, "Expected ']' after attribute");
-            attributes.add(new Attribute(name, param));
+            
+            // Create attribute with both named and positional params
+            // For backward compat, if only one positional string param, also set legacy parameter field
+            String legacyParam = null;
+            if (positionalParams.size() == 1 && positionalParams.get(0) instanceof String && namedParams.isEmpty()) {
+                legacyParam = (String) positionalParams.get(0);
+            }
+            attributes.add(new Attribute(name, namedParams, positionalParams, legacyParam));
         }
         return attributes;
+    }
+
+    private void parseAttributeParameters(Map<String, Object> namedParams, List<Object> positionalParams) {
+        do {
+            Object value = parseAttributeValue();
+            
+            // Check if this is a named parameter (key: value)
+            if (check(ContractTokenType.COLON)) {
+                if (value instanceof String) {
+                    String key = (String) value;
+                    advance(); // consume ':'
+                    Object paramValue = parseAttributeValue();
+                    namedParams.put(key, paramValue);
+                } else {
+                    reporter.report(new Diagnostic(Diagnostic.Level.ERROR, "Expected identifier before ':' in named parameter", null, peek().line, peek().column, "E006", null));
+                }
+            } else {
+                // Positional parameter
+                positionalParams.add(value);
+            }
+        } while (match(ContractTokenType.COMMA));
+    }
+
+    private Object parseAttributeValue() {
+        if (match(ContractTokenType.STRING)) {
+            return previous().literal;
+        } else if (match(ContractTokenType.INT)) {
+            return previous().literal;
+        } else if (match(ContractTokenType.FLOAT)) {
+            return previous().literal;
+        } else if (match(ContractTokenType.IDENTIFIER)) {
+            // Could be a key for named param or a reference
+            return previous().lexeme;
+        } else {
+            ContractToken token = peek();
+            reporter.report(new Diagnostic(Diagnostic.Level.ERROR, "Expected attribute parameter value", null, token.line, token.column, "E006", null));
+            advance();
+            return null;
+        }
     }
 
     private ContractStatement parseTopLevel() {
@@ -60,7 +140,16 @@ public class ContractParser {
         consume(ContractTokenType.LBRACE, "Expected '{' after contract name");
         List<ContractStatement> members = new ArrayList<>();
         while (!check(ContractTokenType.RBRACE) && !isAtEnd()) {
-            members.add(parseTopLevel());
+            if (check(ContractTokenType.FN)) {
+                ContractStatement stmt = parseTopLevel();
+                if (stmt != null) {
+                    members.add(stmt);
+                } else {
+                    synchronizeMembers();
+                }
+            } else {
+                synchronizeMembers();
+            }
         }
         consume(ContractTokenType.RBRACE, "Expected '}' after contract body");
         return new ContractDecl(attributes, name, members);
@@ -91,8 +180,16 @@ public class ContractParser {
 
     private List<ContractStatement> parseBlock() {
         List<ContractStatement> statements = new ArrayList<>();
+        int statementCount = 0;
         while (!check(ContractTokenType.RBRACE) && !isAtEnd()) {
-            statements.add(parseStatement());
+            if (++statementCount > 50) break;
+            if (reporter.hasReachedMaxErrors()) break;
+            ContractStatement stmt = parseStatement();
+            if (stmt != null) {
+                statements.add(stmt);
+            } else {
+                advance();
+            }
         }
         return statements;
     }
@@ -108,6 +205,9 @@ public class ContractParser {
             return parseSwitchStmt();
         } else {
             ContractExpression expr = parseExpression();
+            if (expr == null) {
+                return null;
+            }
             // Optional semicolon
             match(ContractTokenType.SEMICOLON);
             return new ExprStatement(expr);
@@ -129,6 +229,7 @@ public class ContractParser {
     private IfStmt parseIfStmt() {
         consume(ContractTokenType.LPAREN, "Expected '(' after 'if'");
         ContractExpression condition = parseExpression();
+        if (condition == null) return null;
         consume(ContractTokenType.RPAREN, "Expected ')' after condition");
         consume(ContractTokenType.LBRACE, "Expected '{' after condition");
         List<ContractStatement> thenBranch = parseBlock();
@@ -153,6 +254,7 @@ public class ContractParser {
     private WhileStmt parseWhileStmt() {
         consume(ContractTokenType.LPAREN, "Expected '(' after 'while'");
         ContractExpression condition = parseExpression();
+        if (condition == null) return null;
         consume(ContractTokenType.RPAREN, "Expected ')' after condition");
         consume(ContractTokenType.LBRACE, "Expected '{' after condition");
         List<ContractStatement> body = parseBlock();
@@ -173,8 +275,10 @@ public class ContractParser {
 
     private ContractExpression parseAssignment() {
         ContractExpression expr = parseEquality();
+        if (expr == null) return null;
         if (match(ContractTokenType.EQUAL)) {
             ContractExpression value = parseAssignment();
+            if (value == null) return null;
             if (expr instanceof Variable) {
                 return new Assignment(((Variable) expr).name, value);
             } else {
@@ -188,9 +292,11 @@ public class ContractParser {
 
     private ContractExpression parseEquality() {
         ContractExpression expr = parseRelational();
+        if (expr == null) return null;
         while (match(ContractTokenType.EQUAL_EQUAL)) {
             String operator = previous().lexeme;
             ContractExpression right = parseRelational();
+            if (right == null) return null;
             expr = new BinaryOp(expr, operator, right);
         }
         return expr;
@@ -198,9 +304,11 @@ public class ContractParser {
 
     private ContractExpression parseRelational() {
         ContractExpression expr = parseAdditive();
+        if (expr == null) return null;
         while (match(ContractTokenType.LESS, ContractTokenType.GREATER)) {
             String operator = previous().lexeme;
             ContractExpression right = parseAdditive();
+            if (right == null) return null;
             expr = new BinaryOp(expr, operator, right);
         }
         return expr;
@@ -208,55 +316,86 @@ public class ContractParser {
 
     private ContractExpression parseAdditive() {
         ContractExpression expr = parseTerm();
+        if (expr == null) return null;
         while (match(ContractTokenType.PLUS, ContractTokenType.MINUS)) {
             String operator = previous().lexeme;
             ContractExpression right = parseTerm();
+            if (right == null) return null;
             expr = new BinaryOp(expr, operator, right);
         }
         return expr;
     }
 
     private ContractExpression parseTerm() {
-        return parseUnary();
+        ContractExpression expr = parseUnary();
+        if (expr == null) return null;
+        return expr;
     }
 
     private ContractExpression parseUnary() {
         if (match(ContractTokenType.BANG, ContractTokenType.MINUS)) {
             String operator = previous().lexeme;
             ContractExpression operand = parseUnary();
+            if (operand == null) return null;
             return new Unary(operator, operand);
         }
-        return parsePrimary();
+        ContractExpression expr = parsePrimary();
+        if (expr == null) return null;
+        return expr;
     }
 
+    private static final int MAX_PRIMARY_DEPTH = 100;
+    private int primaryDepth = 0;
+
     private ContractExpression parsePrimary() {
-        if (match(ContractTokenType.INT)) {
-            return new Literal(Integer.parseInt(previous().literal.toString()));
-        } else if (match(ContractTokenType.STRING)) {
-            return new Literal(previous().literal);
-        } else if (match(ContractTokenType.IDENTIFIER)) {
-            String name = previous().lexeme;
-            while (match(ContractTokenType.DOT)) {
-                consume(ContractTokenType.IDENTIFIER, "Expected identifier after '.'");
-                name += "." + previous().lexeme;
-            }
-            if (match(ContractTokenType.LPAREN)) {
-                List<ContractExpression> args = new ArrayList<>();
-                if (!check(ContractTokenType.RPAREN)) {
-                    do {
-                        args.add(parseExpression());
-                    } while (match(ContractTokenType.COMMA));
-                }
-                consume(ContractTokenType.RPAREN, "Expected ')' after arguments");
-                return new FunctionCall(name, args);
-            } else {
-                return new Variable(name);
-            }
-        } else {
+        primaryDepth++;
+        if (primaryDepth > MAX_PRIMARY_DEPTH) {
             ContractToken token = peek();
-            reporter.report(new Diagnostic(Diagnostic.Level.ERROR, "Expected expression", null, token.line, token.column, "E005", null));
+            reporter.report(new Diagnostic(Diagnostic.Level.ERROR, "Maximum expression depth exceeded", null, token.line, token.column, "EDEPTH", null));
+            primaryDepth--;
             return null;
         }
+        ContractExpression result = null;
+        boolean done = false;
+        while (!done) {
+            if (match(ContractTokenType.INT)) {
+                result = new Literal(previous().literal);
+                done = true;
+            } else if (match(ContractTokenType.STRING)) {
+                result = new Literal(previous().literal);
+                done = true;
+            } else if (match(ContractTokenType.FLOAT)) {
+                result = new Literal(previous().literal);
+                done = true;
+            } else if (match(ContractTokenType.IDENTIFIER)) {
+                String name = previous().lexeme;
+                while (match(ContractTokenType.DOT)) {
+                    consume(ContractTokenType.IDENTIFIER, "Expected identifier after '.'");
+                    name += "." + previous().lexeme;
+                }
+                if (match(ContractTokenType.LPAREN)) {
+                    List<ContractExpression> args = new ArrayList<>();
+                    if (!check(ContractTokenType.RPAREN)) {
+                        do {
+                            args.add(parseExpression());
+                        } while (match(ContractTokenType.COMMA));
+                    }
+                    consume(ContractTokenType.RPAREN, "Expected ')' after arguments");
+                    result = new FunctionCall(name, args);
+                } else {
+                    result = new Variable(name);
+                }
+                done = true;
+            } else {
+                ContractToken token = peek();
+                reporter.report(new Diagnostic(Diagnostic.Level.ERROR, "Expected expression", null, token.line, token.column, "E005", null));
+                advance();
+                result = null;
+                done = true;
+            }
+        }
+        primaryDepth--;
+        return result;
     }
 
     private boolean match(ContractTokenType... types) {
@@ -297,5 +436,23 @@ public class ContractParser {
         reporter.report(new Diagnostic(Diagnostic.Level.ERROR, message, null, token.line, token.column, "E004", null));
         advance(); // skip the bad token
         return null;
+    }
+
+    private void synchronize() {
+        advance(); // skip the erroneous token
+        while (!isAtEnd()) {
+            if (previous().type == ContractTokenType.SEMICOLON) return;
+            if (check(ContractTokenType.CONTRACT) || check(ContractTokenType.FN) || check(ContractTokenType.LBRACKET)) return;
+            advance();
+        }
+    }
+
+    private void synchronizeMembers() {
+        advance(); // skip the erroneous token
+        while (!isAtEnd()) {
+            if (previous().type == ContractTokenType.SEMICOLON) return;
+            if (check(ContractTokenType.FN) || check(ContractTokenType.RBRACE)) return;
+            advance();
+        }
     }
 }

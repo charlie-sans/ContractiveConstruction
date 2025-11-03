@@ -73,7 +73,9 @@ public class ContractCodeGenerator implements Opcodes {
         }
 
         mv.visitInsn(RETURN);
-        mv.visitMaxs(0, 0); // COMPUTE_FRAMES
+        // With COMPUTE_FRAMES, provide reasonable upper bounds for stack and locals
+        // Stack: assume max 10 for expressions, Locals: assume 50 for variables
+        mv.visitMaxs(10, 50);
         mv.visitEnd();
 
         cw.visitEnd();

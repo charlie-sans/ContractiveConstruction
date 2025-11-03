@@ -11,6 +11,7 @@ public class ContractLexer {
     private final String source;
     private final List<ContractToken> tokens = new ArrayList<>();
     private final DiagnosticReporter reporter;
+    private final boolean debug;
     private int start = 0;
     private int current = 0;
     private int line = 1;
@@ -32,11 +33,19 @@ public class ContractLexer {
     }
 
     public ContractLexer(String source, DiagnosticReporter reporter) {
+        this(source, reporter, false);
+    }
+
+    public ContractLexer(String source, DiagnosticReporter reporter, boolean debug) {
         this.source = source;
         this.reporter = reporter;
+        this.debug = debug;
     }
 
     public List<ContractToken> scanTokens() {
+        if (debug) {
+            System.out.println("=== CONTRACT LEXER DEBUG ===");
+        }
         while (!isAtEnd()) {
             start = current;
             startColumn = column;
@@ -44,6 +53,12 @@ public class ContractLexer {
         }
 
         tokens.add(new ContractToken(ContractTokenType.EOF, "", null, line, column));
+        if (debug) {
+            System.out.println("=== CONTRACT LEXER COMPLETE ===");
+            for (ContractToken token : tokens) {
+                System.out.println(token);
+            }
+        }
         return tokens;
     }
 
@@ -191,6 +206,10 @@ public class ContractLexer {
 
     private void addToken(ContractTokenType type, Object literal) {
         String text = source.substring(start, current);
-        tokens.add(new ContractToken(type, text, literal, line, startColumn));
+        ContractToken token = new ContractToken(type, text, literal, line, startColumn);
+        tokens.add(token);
+        if (debug) {
+            System.out.println("ContractToken: " + token);
+        }
     }
 }

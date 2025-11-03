@@ -11,6 +11,7 @@ public class Lexer {
     private final String source;
     private final List<Token> tokens = new ArrayList<>();
     private final DiagnosticReporter reporter;
+    private final boolean debug;
     private int start = 0;
     private int current = 0;
     private int line = 1;
@@ -39,11 +40,19 @@ public class Lexer {
     }
 
     public Lexer(String source, DiagnosticReporter reporter) {
+        this(source, reporter, false);
+    }
+
+    public Lexer(String source, DiagnosticReporter reporter, boolean debug) {
         this.source = source;
         this.reporter = reporter;
+        this.debug = debug;
     }
 
     public List<Token> scanTokens() {
+        if (debug) {
+            System.out.println("=== LEXER DEBUG ===");
+        }
         while (!isAtEnd()) {
             start = current;
             startColumn = column;
@@ -51,6 +60,12 @@ public class Lexer {
         }
 
         tokens.add(new Token(TokenType.EOF, "", null, line, column));
+        if (debug) {
+            System.out.println("=== LEXER COMPLETE ===");
+            for (Token token : tokens) {
+                System.out.println(token);
+            }
+        }
         return tokens;
     }
 
@@ -201,6 +216,10 @@ public class Lexer {
 
     private void addToken(TokenType type, Object literal) {
         String text = source.substring(start, current);
-        tokens.add(new Token(type, text, literal, line, startColumn));
+        Token token = new Token(type, text, literal, line, startColumn);
+        tokens.add(token);
+        if (debug) {
+            System.out.println("Token: " + token);
+        }
     }
 }
