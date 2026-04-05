@@ -139,4 +139,16 @@ public class ContractImportTest {
         assertTrue(stmts.get(3) instanceof ContractDecl);
         assertFalse("Should not have errors", reporter.hasErrors());
     }
+
+    @Test
+    public void testParseSingleImportWithMultiplePaths() {
+        String source = "import [\"utils.ct\", \"helpers.ct\"]";
+        List<ContractStatement> stmts = parse(source);
+
+        assertEquals(2, stmts.size());
+        assertTrue(stmts.get(0) instanceof ImportStatement);
+        assertTrue(stmts.get(1) instanceof ImportStatement);
+        assertEquals("utils.ct", ((ImportStatement) stmts.get(0)).filePath);
+        assertEquals("helpers.ct", ((ImportStatement) stmts.get(1)).filePath);
+    }
 }

@@ -33,7 +33,20 @@ public class ContractParser {
         }
         List<ContractStatement> statements = new ArrayList<>();
         while (!isAtEnd()) {
-            if (check(ContractTokenType.IMPORT) || check(ContractTokenType.CONTRACT) || check(ContractTokenType.FN) || check(ContractTokenType.LBRACKET)) {
+            if (check(ContractTokenType.IMPORT)) {
+                List<ContractStatement> importStmts = parseImportStatements();
+                if (importStmts != null) {
+                    statements.addAll(importStmts);
+                    if (reporter.hasReachedMaxErrors()) break;
+                    if (debug) {
+                        for (ContractStatement s : importStmts) {
+                            System.out.println("Parsed contract statement: " + s);
+                        }
+                    }
+                } else {
+                    synchronize();
+                }
+            } else if (check(ContractTokenType.CONTRACT) || check(ContractTokenType.FN) || check(ContractTokenType.LBRACKET)) {
                 ContractStatement stmt = parseTopLevel();
                 if (stmt != null) {
                     statements.add(stmt);
@@ -123,9 +136,7 @@ public class ContractParser {
     }
 
     private ContractStatement parseTopLevel() {
-        if (match(ContractTokenType.IMPORT)) {
-            return parseImportStatement();
-        }
+        // Imports are handled at the top-level parse loop to allow multiple paths in one import
         List<Attribute> attributes = parseAttributes();
         if (match(ContractTokenType.CONTRACT)) {
             return parseContractDecl(attributes);
@@ -138,12 +149,20 @@ public class ContractParser {
         }
     }
 
-    private ImportStatement parseImportStatement() {
+    private List<ContractStatement> parseImportStatements() {
+        // Consumes: import ["path1", "path2", ...]
+        match(ContractTokenType.IMPORT);
+        List<ContractStatement> imports = new ArrayList<>();
         consume(ContractTokenType.LBRACKET, "Expected '[' after import");
-        ContractToken pathToken = consume(ContractTokenType.STRING, "Expected file path in import");
+        if (!check(ContractTokenType.RBRACKET)) {
+            do {
+                ContractToken pathToken = consume(ContractTokenType.STRING, "Expected file path in import");
+                String filePath = pathToken == null ? null : (String) pathToken.literal;
+                if (filePath != null) imports.add(new ImportStatement(filePath));
+            } while (match(ContractTokenType.COMMA));
+        }
         consume(ContractTokenType.RBRACKET, "Expected ']' after import path");
-        String filePath = (String) pathToken.literal;
-        return new ImportStatement(filePath);
+        return imports;
     }
 
     private ContractDecl parseContractDecl(List<Attribute> attributes) {

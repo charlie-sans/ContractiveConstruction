@@ -20,6 +20,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
@@ -94,6 +96,14 @@ public class Main {
 
             Parser parser = new Parser(tokens, reporter, debug);
             List<Statement> statements = parser.parse();
+
+            if (reporter.hasErrors()) {
+                reporter.printDiagnostics();
+                System.exit(1);
+            }
+
+            // Resolve imports for construct files
+            statements = resolveConstructImports(statements, filePath, reporter, debug);
 
             if (reporter.hasErrors()) {
                 reporter.printDiagnostics();
@@ -196,6 +206,10 @@ public class Main {
     }
 
     private static List<ContractStatement> resolveImports(List<ContractStatement> statements, String basePath, DiagnosticReporter reporter, boolean debug) throws IOException {
+        return resolveImports(statements, basePath, reporter, debug, new HashSet<>());
+    }
+
+    private static List<ContractStatement> resolveImports(List<ContractStatement> statements, String basePath, DiagnosticReporter reporter, boolean debug, java.util.Set<java.nio.file.Path> visited) throws IOException {
         List<ContractStatement> resolved = new ArrayList<>();
         Path baseDirPath = Paths.get(basePath).toAbsolutePath().getParent();
         if (baseDirPath == null) {
@@ -205,17 +219,36 @@ public class Main {
         for (ContractStatement stmt : statements) {
             if (stmt instanceof ImportStatement) {
                 ImportStatement importStmt = (ImportStatement) stmt;
-                Path importPath = baseDirPath.resolve(importStmt.filePath).toAbsolutePath();
+                Path importPath = baseDirPath.resolve(importStmt.filePath).toAbsolutePath().normalize();
 
                 if (!Files.exists(importPath)) {
                     reporter.report(new Diagnostic(Diagnostic.Level.ERROR, "Import file not found: " + importPath, null, 0, 0, "E100", null));
                     continue;
                 }
 
+                Path realPath;
+                try {
+                    realPath = importPath.toRealPath();
+                } catch (IOException e) {
+                    realPath = importPath;
+                }
+
+                if (visited.contains(realPath)) {
+                    reporter.report(new Diagnostic(Diagnostic.Level.ERROR, "Circular import detected: " + importPath, null, 0, 0, "E101", null));
+                    continue;
+                }
+                visited.add(realPath);
+
+                // Warn if importing a construct file into contract compilation
+                String fileName = importPath.getFileName().toString();
+                if (fileName.endsWith(".construct")) {
+                    reporter.report(new Diagnostic(Diagnostic.Level.WARNING, "Import file appears to be a Construct file: " + importPath, null, 0, 0, "W100", "Imported file has a different language extension"));
+                }
+
                 String importSource = new String(Files.readAllBytes(importPath));
                 DiagnosticReporter importReporter = new DiagnosticReporter(importSource, importPath.toString());
 
-                // Parse imported file
+                // Parse imported file as contract
                 ContractLexer importLexer = new ContractLexer(importSource, importReporter, debug);
                 List<ContractToken> importTokens = importLexer.scanTokens();
 
@@ -233,7 +266,78 @@ public class Main {
                 }
 
                 // Recursively resolve imports in the imported file
-                List<ContractStatement> resolvedImported = resolveImports(importedStmts, importPath.toString(), reporter, debug);
+                List<ContractStatement> resolvedImported = resolveImports(importedStmts, importPath.toString(), reporter, debug, visited);
+                resolved.addAll(resolvedImported);
+            } else {
+                resolved.add(stmt);
+            }
+        }
+
+        return resolved;
+    }
+
+    private static List<Statement> resolveConstructImports(List<Statement> statements, String basePath, DiagnosticReporter reporter, boolean debug) throws IOException {
+        return resolveConstructImports(statements, basePath, reporter, debug, new HashSet<>());
+    }
+
+    private static List<Statement> resolveConstructImports(List<Statement> statements, String basePath, DiagnosticReporter reporter, boolean debug, java.util.Set<java.nio.file.Path> visited) throws IOException {
+        List<Statement> resolved = new ArrayList<>();
+        Path baseDirPath = Paths.get(basePath).toAbsolutePath().getParent();
+        if (baseDirPath == null) {
+            baseDirPath = Paths.get(".").toAbsolutePath();
+        }
+
+        for (Statement stmt : statements) {
+            if (stmt instanceof ovh.finite.ast.ImportStatement) {
+                ovh.finite.ast.ImportStatement importStmt = (ovh.finite.ast.ImportStatement) stmt;
+                Path importPath = baseDirPath.resolve(importStmt.filePath).toAbsolutePath().normalize();
+
+                if (!Files.exists(importPath)) {
+                    reporter.report(new Diagnostic(Diagnostic.Level.ERROR, "Import file not found: " + importPath, null, 0, 0, "E100", null));
+                    continue;
+                }
+
+                Path realPath;
+                try {
+                    realPath = importPath.toRealPath();
+                } catch (IOException e) {
+                    realPath = importPath;
+                }
+
+                if (visited.contains(realPath)) {
+                    reporter.report(new Diagnostic(Diagnostic.Level.ERROR, "Circular import detected: " + importPath, null, 0, 0, "E101", null));
+                    continue;
+                }
+                visited.add(realPath);
+
+                // Warn if importing a contract file into construct compilation
+                String fileName = importPath.getFileName().toString();
+                if (fileName.endsWith(".ct") || fileName.endsWith(".contract")) {
+                    reporter.report(new Diagnostic(Diagnostic.Level.WARNING, "Import file appears to be a Contract file: " + importPath, null, 0, 0, "W100", "Imported file has a different language extension"));
+                }
+
+                String importSource = new String(Files.readAllBytes(importPath));
+                DiagnosticReporter importReporter = new DiagnosticReporter(importSource, importPath.toString());
+
+                // Parse imported file as construct
+                Lexer importLexer = new Lexer(importSource, importReporter, debug);
+                List<Token> importTokens = importLexer.scanTokens();
+
+                if (importReporter.hasErrors()) {
+                    reporter.report(new Diagnostic(Diagnostic.Level.ERROR, "Errors in imported file: " + importPath, null, 0, 0, "E100", null));
+                    continue;
+                }
+
+                Parser importParser = new Parser(importTokens, importReporter, debug);
+                List<Statement> importedStmts = importParser.parse();
+
+                if (importReporter.hasErrors()) {
+                    reporter.report(new Diagnostic(Diagnostic.Level.ERROR, "Parse errors in imported file: " + importPath, null, 0, 0, "E100", null));
+                    continue;
+                }
+
+                // Recursively resolve imports in the imported file
+                List<Statement> resolvedImported = resolveConstructImports(importedStmts, importPath.toString(), reporter, debug, visited);
                 resolved.addAll(resolvedImported);
             } else {
                 resolved.add(stmt);

@@ -31,10 +31,22 @@ public class Parser {
         }
         List<Statement> statements = new ArrayList<>();
         while (!isAtEnd()) {
-            Statement stmt = parseStatement();
-            statements.add(stmt);
-            if (debug) {
-                System.out.println("Parsed statement: " + stmt);
+            if (check(TokenType.IMPORT)) {
+                List<Statement> importStmts = parseImportList();
+                if (importStmts != null) {
+                    statements.addAll(importStmts);
+                    if (debug) {
+                        for (Statement s : importStmts) System.out.println("Parsed statement: " + s);
+                    }
+                } else {
+                    advance();
+                }
+            } else {
+                Statement stmt = parseStatement();
+                statements.add(stmt);
+                if (debug) {
+                    System.out.println("Parsed statement: " + stmt);
+                }
             }
         }
         if (debug) {
@@ -50,8 +62,6 @@ public class Parser {
             return parseFunctionDefinition();
         } else if (match(TokenType.TYPE)) {
             return parseTypeAlias();
-        } else if (match(TokenType.IMPORT)) {
-            return parseImport();
         } else if (match(TokenType.WHILE)) {
             return parseWhileStatement();
         } else if (match(TokenType.FOR)) {
@@ -98,8 +108,25 @@ public class Parser {
     }
 
     private Statement parseImport() {
+        // Deprecated: import handled by parseImportList at top-level
         consume(TokenType.IDENTIFIER, "Expected module name");
-        return null; // TODO
+        return null;
+    }
+
+    private List<Statement> parseImportList() {
+        // Consumes: import ["path1", "path2", ...]
+        match(TokenType.IMPORT);
+        List<Statement> imports = new ArrayList<>();
+        consume(TokenType.LBRACKET, "Expected '[' after import");
+        if (!check(TokenType.RBRACKET)) {
+            do {
+                Token pathToken = consume(TokenType.STRING, "Expected file path in import");
+                String filePath = pathToken == null ? null : (String) pathToken.literal;
+                if (filePath != null) imports.add(new ovh.finite.ast.ImportStatement(filePath));
+            } while (match(TokenType.COMMA));
+        }
+        consume(TokenType.RBRACKET, "Expected ']' after import");
+        return imports;
     }
 
     private Expression parseExpression() {
